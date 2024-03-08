@@ -1,0 +1,26 @@
+[package]
+name = "requestor"
+version = "0.1.0"
+edition = "2021"
+description = "Application used for HTTP endpoint testing"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eframe = { version = "0.26.2", features = ["persistence"] }
+egui = { version = "^0.26", features = ["persistence"] }
+egui_demo_lib = "0.26.2"
+egui_extras = { version = "*", features = ["all_loaders"] }
+ehttp = "0.5.0"
+poll-promise = "^0.3"
+image = { version = "0.24", features = ["jpeg", "png"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+catppuccin-egui = { git = "https://github.com/catppuccin/egui", version = "5.0.0" }
+url = "2.5.0"
+egui-toast = "0.12.1"
+
+[package.metadata.bundle]
+name = "Requestor"
+identifier = "io.github.lnenad.requestor"
+short_description = "Application used for HTTP endpoint testing"
