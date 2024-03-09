@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{io::Read, time::Duration};
 
 use egui::Image;
 
@@ -8,7 +8,7 @@ pub struct Resource {
     pub response: ehttp::Response,
     pub timing: Duration,
     pub text: Option<String>,
-
+    pub raw_text: Option<String>,
     /// If set, the response was an image.
     pub image: Option<Image<'static>>,
 
@@ -31,10 +31,13 @@ impl Resource {
                 response,
                 timing: elapsed,
                 text: None,
+                raw_text: None,
                 colored_text: None,
                 image: Some(image),
             }
         } else {
+            let raw_text =
+                unsafe { Some(std::str::from_utf8_unchecked(response.bytes.as_ref()).to_owned()) };
             let text = response.text();
             let colored_text = text.and_then(|text| syntax_highlighting(ctx, &response, text));
             let text = text.map(|text| text.to_owned());
@@ -43,6 +46,7 @@ impl Resource {
                 response,
                 timing: elapsed,
                 text,
+                raw_text,
                 colored_text,
                 image: None,
             }

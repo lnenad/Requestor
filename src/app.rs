@@ -28,13 +28,15 @@ pub struct HttpApp {
     resource: Option<Resource>,
     #[cfg_attr(feature = "serde", serde(skip))]
     promise: Option<Promise<ehttp::Result<Resource>>>,
+    show_headers: bool,
+    show_body: bool,
 }
 
 impl Default for HttpApp {
     fn default() -> Self {
         Self {
             method: RequestMethod::GET,
-            url: "https://httpbin.org/get".to_owned(),
+            url: "".to_owned(),
             request_header_keys: vec!["".to_owned()],
             request_header_values: vec!["".to_owned()],
             query_param_keys: vec!["".to_owned()],
@@ -43,6 +45,8 @@ impl Default for HttpApp {
             selected_item: None,
             history_items: vec![],
             resource: None,
+            show_headers: true,
+            show_body: false,
             promise: Default::default(),
         }
     }
@@ -65,7 +69,15 @@ impl HttpApp {
             serde_json::from_str::<Vec<HistoryItem>>(history_string.as_str()).unwrap();
         let mut default: Self = Default::default();
         // println!("Loading state: {:?}", history);
+        match &history.last() {
+            Some(item) => {
+                default.url = item.url.clone();
+                default.method = item.method
+            }
+            None => default.url = "https://httpbin.org/get".to_owned(),
+        }
         default.history_items = history;
+
         default
     }
 }
@@ -297,7 +309,7 @@ impl eframe::App for HttpApp {
                             ui.add_space(20.0);
                             ui.label("Response");
                             ui.separator();
-                            ui_response(ui, resource);
+                            ui_response(ui, resource, &mut self.show_headers, &mut self.show_body);
                             self.resource = Some(resource.clone());
                         }
                         Err(error) => {

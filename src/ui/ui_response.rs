@@ -1,9 +1,15 @@
 use crate::app::resource::Resource;
 
-pub fn ui_response(ui: &mut egui::Ui, resource: &Resource) {
+pub fn ui_response(
+    ui: &mut egui::Ui,
+    resource: &Resource,
+    show_headers: &mut bool,
+    show_body: &mut bool,
+) {
     let Resource {
         response,
         timing: _,
+        raw_text,
         text,
         image,
         colored_text,
@@ -16,69 +22,89 @@ pub fn ui_response(ui: &mut egui::Ui, resource: &Resource) {
         egui::TextStyle::Body,
         egui::FontId::new(14.0, eframe::epaint::FontFamily::Proportional),
     );
-    ui.with_layout(
-        egui::Layout::left_to_right(egui::Align::Min).with_cross_justify(true),
-        |ui| {
-            // Can't use serde as headers aren't serializable to k:v
-            let mut headers_json = "{".to_owned();
-            for idx in 0..response.headers.headers.len() {
-                headers_json
-                    .push_str(format!("\"{}\":", &response.headers.headers[idx].0).as_str());
-                headers_json.push_str(format!("\"{}\"", &response.headers.headers[idx].1).as_str());
-                if idx != response.headers.headers.len() - 1 {
-                    headers_json.push_str(",");
+    ui.horizontal(|ui| {
+        if ui
+            .add(egui::SelectableLabel::new(*show_headers, "Headers"))
+            .clicked()
+        {
+            *show_headers = true;
+            *show_body = false;
+        }
+
+        ui.separator();
+        if ui
+            .add(egui::SelectableLabel::new(*show_body, "Body"))
+            .clicked()
+        {
+            *show_body = true;
+            *show_headers = false;
+        }
+        ui.separator();
+    });
+
+    ui.separator();
+
+    let mut text_to_copy = "".to_owned();
+
+    if *show_headers {
+        // Can't use serde as headers aren't serializable to k:v
+        text_to_copy = "{".to_owned();
+        for idx in 0..response.headers.headers.len() {
+            text_to_copy.push_str(format!("\"{}\":", &response.headers.headers[idx].0).as_str());
+            text_to_copy.push_str(format!("\"{}\"", &response.headers.headers[idx].1).as_str());
+            if idx != response.headers.headers.len() - 1 {
+                text_to_copy.push_str(",");
+            }
+        }
+        text_to_copy.push_str("}");
+    }
+    if *show_body {
+        if let Some(text) = &text {
+            text_to_copy = text.clone();
+        }
+        if let Some(raw_text) = &raw_text {
+            text_to_copy = raw_text.clone();
+        }
+    }
+
+    ui.add_space(5.0);
+    let container = egui::ScrollArea::both()
+        .auto_shrink(true)
+        .max_width(ui.available_width())
+        .id_source("1")
+        .show(ui, |ui| {
+            if *show_headers {
+                egui::Grid::new("response_headers")
+                    .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
+                    .show(ui, |ui| {
+                        for (k, v) in &response.headers {
+                            ui.label(k);
+                            ui.label(v);
+                            ui.end_row();
+                        }
+                    });
+            }
+
+            if *show_body {
+                if let Some(image) = image {
+                    Some(ui.add(image.clone()));
+                } else if let Some(colored_text) = colored_text {
+                    Some(colored_text.ui(ui));
+                } else if let Some(text) = &text {
+                    Some(ui.add(egui::Label::new(text).selectable(true)));
+                } else if let Some(raw_text) = &raw_text {
+                    Some(ui.add(egui::Label::new(raw_text).selectable(true)));
+                } else {
+                    Some(ui.monospace("[binary]"));
                 }
             }
-            headers_json.push_str("}");
+        });
 
-            let headers_response = egui::ScrollArea::horizontal()
-                .auto_shrink(true)
-                .max_width(ui.available_width() / 2.0)
-                .id_source("1")
-                .show(ui, |ui| {
-                    egui::CollapsingHeader::new("Headers")
-                        .default_open(true)
-                        .show(ui, |ui| {
-                            egui::Grid::new("response_headers")
-                                .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
-                                .show(ui, |ui| {
-                                    for (k, v) in &response.headers {
-                                        ui.label(k);
-                                        ui.label(v);
-                                        ui.end_row();
-                                    }
-                                });
-                            ui.add_space(10.0);
-                        });
-                });
-
-            clipboard(
-                ui.ctx(),
-                "headers".to_owned(),
-                headers_response.inner_rect,
-                &headers_json,
-            );
-
-            let body_response = egui::ScrollArea::vertical()
-                .auto_shrink(true)
-                .id_source("2")
-                .show(ui, |ui| {
-                    ui.separator();
-                    if let Some(image) = image {
-                        Some(ui.add(image.clone()));
-                    } else if let Some(colored_text) = colored_text {
-                        Some(colored_text.ui(ui));
-                    } else if let Some(text) = &text {
-                        Some(ui.add(egui::Label::new(text).selectable(true)));
-                    } else {
-                        Some(ui.monospace("[binary]"));
-                    }
-                });
-
-            if let Some(text) = &text {
-                clipboard(ui.ctx(), "body".to_owned(), body_response.inner_rect, text);
-            }
-        },
+    clipboard(
+        ui.ctx(),
+        "headers".to_owned(),
+        container.inner_rect,
+        &text_to_copy.to_owned(),
     );
 }
 
