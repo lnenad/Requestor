@@ -19,7 +19,19 @@ pub fn ui_response(ui: &mut egui::Ui, resource: &Resource) {
     ui.with_layout(
         egui::Layout::left_to_right(egui::Align::Min).with_cross_justify(true),
         |ui| {
-            egui::ScrollArea::horizontal()
+            // Can't use serde as headers aren't serializable to k:v
+            let mut headers_json = "{".to_owned();
+            for idx in 0..response.headers.headers.len() {
+                headers_json
+                    .push_str(format!("\"{}\":", &response.headers.headers[idx].0).as_str());
+                headers_json.push_str(format!("\"{}\"", &response.headers.headers[idx].1).as_str());
+                if idx != response.headers.headers.len() - 1 {
+                    headers_json.push_str(",");
+                }
+            }
+            headers_json.push_str("}");
+
+            let headers_response = egui::ScrollArea::horizontal()
                 .auto_shrink(true)
                 .max_width(ui.available_width() / 2.0)
                 .id_source("1")
@@ -40,6 +52,13 @@ pub fn ui_response(ui: &mut egui::Ui, resource: &Resource) {
                         });
                 });
 
+            clipboard(
+                ui.ctx(),
+                "headers".to_owned(),
+                headers_response.inner_rect,
+                &headers_json,
+            );
+
             let body_response = egui::ScrollArea::vertical()
                 .auto_shrink(true)
                 .id_source("2")
@@ -57,20 +76,24 @@ pub fn ui_response(ui: &mut egui::Ui, resource: &Resource) {
                 });
 
             if let Some(text) = &text {
-                egui::Area::new("clipboard")
-                    .current_pos(egui::Pos2 {
-                        x: body_response.inner_rect.min.x + body_response.inner_rect.width() - 22.0,
-                        y: body_response.inner_rect.min.y,
-                    })
-                    .order(egui::Order::Foreground)
-                    .interactable(true)
-                    .show(ui.ctx(), |ui| {
-                        let tooltip = "Click to copy the response body";
-                        if ui.button("📋").on_hover_text(tooltip).clicked() {
-                            ui.ctx().copy_text(text.clone());
-                        }
-                    });
+                clipboard(ui.ctx(), "body".to_owned(), body_response.inner_rect, text);
             }
         },
     );
+}
+
+fn clipboard(ctx: &egui::Context, name: String, rect: egui::Rect, text: &String) {
+    egui::Area::new(name)
+        .current_pos(egui::Pos2 {
+            x: rect.min.x + rect.width() - 22.0,
+            y: rect.min.y,
+        })
+        .order(egui::Order::Foreground)
+        .interactable(true)
+        .show(ctx, |ui| {
+            let tooltip = "Click to copy";
+            if ui.button("📋").on_hover_text(tooltip).clicked() {
+                ui.ctx().copy_text(text.clone());
+            }
+        });
 }
