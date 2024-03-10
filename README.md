@@ -84,7 +84,11 @@ Have `cargo` and `Rust` setup on your computer.
 
 ### Installation
 
-Nothing special is required since `cargo` does all the heavy lifting.
+To use on Linux, first run:
+
+`sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev`
+
+After that you should be able to use `cargo` to run and build.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

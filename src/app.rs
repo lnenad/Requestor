@@ -1,5 +1,6 @@
 pub mod request_method;
 pub mod resource;
+pub mod syntax_highlighting;
 
 use poll_promise::Promise;
 use std::cell::RefCell;
@@ -69,7 +70,7 @@ impl HttpApp {
             serde_json::from_str::<Vec<HistoryItem>>(history_string.as_str()).unwrap();
         let mut default: Self = Default::default();
         // println!("Loading state: {:?}", history);
-        match &history.last() {
+        match &history.first() {
             Some(item) => {
                 default.url = item.url.clone();
                 default.method = item.method
@@ -156,10 +157,8 @@ impl eframe::App for HttpApp {
                     }
 
                     ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-                        if ui
-                            .add_sized(ui.available_size(), egui::Button::new("Clear History"))
-                            .clicked()
-                        {
+                        ui.style_mut().spacing.button_padding = (40.0, 3.0).into();
+                        if ui.add(egui::Button::new("Clear History")).clicked() {
                             self.history_items = vec![];
                         }
                     });

@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "Application used for HTTP endpoint testing"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+"default" = ["syntect"]
+
+[profile.release]
+strip = true
 
 [dependencies]
 eframe = { version = "0.26.2", features = ["persistence"] }
@@ -19,8 +23,20 @@ serde_json = "1.0.114"
 catppuccin-egui = { git = "https://github.com/catppuccin/egui", version = "5.0.0" }
 url = "2.5.0"
 egui-toast = "0.12.1"
+enum-map = "2.7.3"
+syntect = { version = "5.2.0", optional = true }
 
 [package.metadata.bundle]
 name = "Requestor"
 identifier = "io.github.lnenad.requestor"
 short_description = "Application used for HTTP endpoint testing"
+icon = [
+    "icons/icon-16x16.png",
+    "icons/icon-32x32.png",
+    "icons/icon-64x64.png",
+    "icons/icon-128x128.png",
+    "icons/icon-256x256.png",
+    "icons/icon-512x512.png",
+    "icons/icon-512x512@2x.png",
+    "icons/icon-1024x1024@2x.png",
+]

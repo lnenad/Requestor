@@ -1,3 +1,5 @@
+use crate::app::syntax_highlighting::{code_view_ui, get_type_from_mime, CodeTheme};
+
 use crate::app::resource::Resource;
 
 pub fn ui_response(
@@ -86,16 +88,30 @@ pub fn ui_response(
             }
 
             if *show_body {
+                if response.content_type().is_none() {
+                    if let Some(raw_text) = &raw_text {
+                        ui.add(egui::Label::new(raw_text).selectable(true));
+                    } else {
+                        ui.monospace("[binary]");
+                    }
+                }
+
+                println!(
+                    "Content-type: {:?} ",
+                    get_type_from_mime(response.content_type().unwrap())
+                );
+
                 if let Some(image) = image {
-                    Some(ui.add(image.clone()));
+                    ui.add(image.clone());
                 } else if let Some(colored_text) = colored_text {
-                    Some(colored_text.ui(ui));
+                    code_view_ui(
+                        ui,
+                        &CodeTheme::dark(),
+                        text.as_ref().unwrap().as_str(),
+                        get_type_from_mime(response.content_type().unwrap()),
+                    );
                 } else if let Some(text) = &text {
-                    Some(ui.add(egui::Label::new(text).selectable(true)));
-                } else if let Some(raw_text) = &raw_text {
-                    Some(ui.add(egui::Label::new(raw_text).selectable(true)));
-                } else {
-                    Some(ui.monospace("[binary]"));
+                    ui.add(egui::Label::new(text).selectable(true));
                 }
             }
         });

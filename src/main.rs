@@ -9,12 +9,12 @@ fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([900.0, 700.0])
-            .with_min_inner_size([600.0, 420.0]),
-        // .with_icon(
-        //     // NOE: Adding an icon is optional
-        //     eframe::icon_data::from_png_bytes(&include_bytes!("../assets/icon-256.png")[..])
-        //         .unwrap(),
-        // ),
+            .with_min_inner_size([600.0, 420.0])
+            .with_icon(
+                // NOE: Adding an icon is optional
+                eframe::icon_data::from_png_bytes(&include_bytes!("../icons/icon-256x256.png")[..])
+                    .unwrap(),
+            ),
         ..Default::default()
     };
     eframe::run_native(
