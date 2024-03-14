@@ -1,6 +1,5 @@
 pub fn ui_headers(
     ui: &mut egui::Ui,
-    _frame: &mut eframe::Frame,
     request_header_keys: &mut Vec<String>,
     request_header_values: &mut Vec<String>,
 ) {

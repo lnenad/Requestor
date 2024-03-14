@@ -7,10 +7,11 @@ pub fn ui_response(
     resource: &Resource,
     show_headers: &mut bool,
     show_body: &mut bool,
+    show_info: &mut bool,
 ) {
     let Resource {
         response,
-        timing: _,
+        timing,
         raw_text,
         text,
         image,
@@ -31,6 +32,7 @@ pub fn ui_response(
         {
             *show_headers = true;
             *show_body = false;
+            *show_info = false;
         }
 
         ui.separator();
@@ -40,6 +42,16 @@ pub fn ui_response(
         {
             *show_body = true;
             *show_headers = false;
+            *show_info = false;
+        }
+        ui.separator();
+        if ui
+            .add(egui::SelectableLabel::new(*show_body, "Info"))
+            .clicked()
+        {
+            *show_body = false;
+            *show_headers = false;
+            *show_info = true;
         }
         ui.separator();
     });
@@ -96,11 +108,6 @@ pub fn ui_response(
                     }
                 }
 
-                println!(
-                    "Content-type: {:?} ",
-                    get_type_from_mime(response.content_type().unwrap())
-                );
-
                 if let Some(image) = image {
                     ui.add(image.clone());
                 } else if let Some(colored_text) = colored_text {
@@ -113,6 +120,23 @@ pub fn ui_response(
                 } else if let Some(text) = &text {
                     ui.add(egui::Label::new(text).selectable(true));
                 }
+            }
+
+            if *show_info {
+                ui.monospace(format!("url: {}", response.url));
+                ui.monospace(format!(
+                    "status: {} ({})",
+                    response.status, response.status_text
+                ));
+                ui.monospace(format!(
+                    "content-type: {}",
+                    response.content_type().unwrap_or_default()
+                ));
+                ui.monospace(format!(
+                    "size: {:.1} kB",
+                    response.bytes.len() as f32 / 1000.0
+                ));
+                ui.monospace(format!("timing: {:.1}ms", timing.as_millis()));
             }
         });
 

@@ -4,7 +4,6 @@ use crate::app::request_method::RequestMethod;
 
 pub fn ui_url(
     ui: &mut egui::Ui,
-    _frame: &mut eframe::Frame,
     url: &mut String,
     method: &mut RequestMethod,
 ) -> (Option<Response>, bool) {

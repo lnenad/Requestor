@@ -1,6 +1,5 @@
 pub fn ui_query_params(
     ui: &mut egui::Ui,
-    _frame: &mut eframe::Frame,
     url: &mut String,
     query_param_keys: &mut Vec<String>,
     query_param_values: &mut Vec<String>,

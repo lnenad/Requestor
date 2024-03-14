@@ -1,7 +1,7 @@
 use crate::app::request_method::RequestMethod;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HistoryItem {
     pub id: String,
     pub url: String,
