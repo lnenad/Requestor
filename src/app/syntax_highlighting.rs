@@ -122,6 +122,7 @@ impl Default for CodeTheme {
 
 impl CodeTheme {
     /// Selects either dark or light theme based on the given style.
+    #[allow(dead_code)]
     pub fn from_style(style: &egui::Style) -> Self {
         if style.visuals.dark_mode {
             Self::dark()
@@ -133,6 +134,7 @@ impl CodeTheme {
     /// Load code theme from egui memory.
     ///
     /// There is one dark and one light theme stored at any one time.
+    #[allow(dead_code)]
     pub fn from_memory(ctx: &egui::Context) -> Self {
         if ctx.style().visuals.dark_mode {
             ctx.data_mut(|d| {
@@ -150,6 +152,7 @@ impl CodeTheme {
     /// Store theme to egui memory.
     ///
     /// There is one dark and one light theme stored at any one time.
+    #[allow(dead_code)]
     pub fn store_in_memory(self, ctx: &egui::Context) {
         if self.dark_mode {
             ctx.data_mut(|d| d.insert_persisted(egui::Id::new("dark"), self));
@@ -168,6 +171,7 @@ impl CodeTheme {
         }
     }
 
+    #[allow(dead_code)]
     pub fn light() -> Self {
         Self {
             dark_mode: false,
@@ -176,6 +180,7 @@ impl CodeTheme {
     }
 
     /// Show UI for changing the color theme.
+    #[allow(dead_code)]
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         egui::widgets::global_dark_light_mode_buttons(ui);
 

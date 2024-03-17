@@ -10,7 +10,6 @@ pub fn ui_history(ui: &mut egui::Ui, items: &Vec<HistoryItem>) -> Option<History
             let response = history_item_widget(ui, item.url.clone(), item.method.to_string());
             if response.clicked() {
                 // Set this item to be the currently edited one
-                println!("Selection made: {:?}", item);
                 selected = Some(HistoryItem {
                     id: id.to_string(),
                     url: item.url.clone(),

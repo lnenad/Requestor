@@ -1,8 +1,6 @@
 use crate::app::syntax_highlighting::{code_view_ui, get_type_from_mime, CodeTheme};
 
 use crate::app::resource::Resource;
-use egui::Vec2;
-use rand::{distributions::Alphanumeric, Rng}; // 0.8
 
 pub fn ui_response(
     ui: &mut egui::Ui,
@@ -180,12 +178,4 @@ fn clipboard(ctx: &egui::Context, name: String, rect: egui::Rect, text: &String)
                 ui.ctx().copy_text(text.clone());
             }
         });
-}
-
-fn random_str() -> String {
-    rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(7)
-        .map(char::from)
-        .collect()
 }

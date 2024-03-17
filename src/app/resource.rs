@@ -74,6 +74,7 @@ fn syntax_highlighting(
 pub struct ColoredText(egui::text::LayoutJob);
 
 impl ColoredText {
+    #[allow(dead_code)]
     pub fn ui(&self, ui: &mut egui::Ui) -> egui::Response {
         let mut job = self.0.clone();
         job.wrap.max_width = ui.available_width();
