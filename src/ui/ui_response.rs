@@ -1,10 +1,13 @@
 use crate::app::syntax_highlighting::{code_view_ui, get_type_from_mime, CodeTheme};
 
 use crate::app::resource::Resource;
+use egui::Vec2;
+use rand::{distributions::Alphanumeric, Rng}; // 0.8
 
 pub fn ui_response(
     ui: &mut egui::Ui,
     resource: &Resource,
+    tab: &mut String,
     show_headers: &mut bool,
     show_body: &mut bool,
     show_info: &mut bool,
@@ -46,7 +49,7 @@ pub fn ui_response(
         }
         ui.separator();
         if ui
-            .add(egui::SelectableLabel::new(*show_body, "Info"))
+            .add(egui::SelectableLabel::new(*show_info, "Info"))
             .clicked()
         {
             *show_body = false;
@@ -81,68 +84,83 @@ pub fn ui_response(
         }
     }
 
-    ui.add_space(5.0);
+    ui.add_space(5.0); // Top margin
+
     let container = egui::ScrollArea::both()
-        .auto_shrink(true)
+        .auto_shrink(false)
         .max_width(ui.available_width())
         .id_source("1")
         .show(ui, |ui| {
-            if *show_headers {
-                egui::Grid::new("response_headers")
-                    .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
-                    .show(ui, |ui| {
-                        for (k, v) in &response.headers {
-                            ui.label(k);
-                            ui.label(v);
-                            ui.end_row();
-                        }
-                    });
-            }
+            ui.horizontal(|ui| {
+                ui.add_space(10.0);
+                if *show_headers {
+                    egui::Grid::new("response_headers")
+                        .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
+                        .show(ui, |ui| {
+                            for (k, v) in &response.headers {
+                                ui.label(k);
+                                ui.label(v);
+                                ui.end_row();
+                            }
+                        });
+                }
 
-            if *show_body {
-                if response.content_type().is_none() {
-                    if let Some(raw_text) = &raw_text {
-                        ui.add(egui::Label::new(raw_text).selectable(true));
-                    } else {
-                        ui.monospace("[binary]");
+                if *show_body {
+                    if response.content_type().is_none() {
+                        if let Some(raw_text) = &raw_text {
+                            ui.add(egui::Label::new(raw_text).selectable(true));
+                        } else {
+                            ui.monospace("[binary]");
+                        }
+                    }
+
+                    if let Some(image) = image {
+                        ui.add(image.clone());
+                    } else if let Some(_colored_text) = colored_text {
+                        code_view_ui(
+                            ui,
+                            &CodeTheme::dark(),
+                            text.as_ref().unwrap().as_str(),
+                            get_type_from_mime(response.content_type().unwrap()),
+                        );
+                    } else if let Some(text) = &text {
+                        ui.add(egui::Label::new(text).selectable(true));
                     }
                 }
 
-                if let Some(image) = image {
-                    ui.add(image.clone());
-                } else if let Some(colored_text) = colored_text {
-                    code_view_ui(
-                        ui,
-                        &CodeTheme::dark(),
-                        text.as_ref().unwrap().as_str(),
-                        get_type_from_mime(response.content_type().unwrap()),
-                    );
-                } else if let Some(text) = &text {
-                    ui.add(egui::Label::new(text).selectable(true));
+                if *show_info {
+                    egui::Grid::new("response_headers")
+                        .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
+                        .show(ui, |ui| {
+                            ui.monospace(format!("url: {}", response.url));
+                            ui.end_row();
+                            ui.monospace(format!(
+                                "status: {} ({})",
+                                response.status, response.status_text
+                            ));
+                            ui.end_row();
+                            ui.monospace(format!(
+                                "content-type: {}",
+                                response.content_type().unwrap_or_default()
+                            ));
+                            ui.end_row();
+                            ui.monospace(format!(
+                                "size: {:.1} kB",
+                                response.bytes.len() as f32 / 1000.0
+                            ));
+                            ui.end_row();
+                            ui.monospace(format!("timing: {:.1}ms", timing.as_millis()));
+                            ui.end_row();
+                        });
                 }
-            }
-
-            if *show_info {
-                ui.monospace(format!("url: {}", response.url));
-                ui.monospace(format!(
-                    "status: {} ({})",
-                    response.status, response.status_text
-                ));
-                ui.monospace(format!(
-                    "content-type: {}",
-                    response.content_type().unwrap_or_default()
-                ));
-                ui.monospace(format!(
-                    "size: {:.1} kB",
-                    response.bytes.len() as f32 / 1000.0
-                ));
-                ui.monospace(format!("timing: {:.1}ms", timing.as_millis()));
-            }
+            });
         });
 
+    let mut ui_name = "response".to_owned();
+    ui_name.push_str(tab.as_str());
     clipboard(
         ui.ctx(),
-        "headers".to_owned(),
+        ui_name,
         container.inner_rect,
         &text_to_copy.to_owned(),
     );
@@ -162,4 +180,12 @@ fn clipboard(ctx: &egui::Context, name: String, rect: egui::Rect, text: &String)
                 ui.ctx().copy_text(text.clone());
             }
         });
+}
+
+fn random_str() -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(7)
+        .map(char::from)
+        .collect()
 }

@@ -1043,6 +1043,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-modal"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c42ec236ee84cdf0f2119c554291684d51ce829f2949c44159b0c9d685834117"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-toast"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1109,6 +1118,7 @@ dependencies = [
  "duplicate",
  "egui",
  "paste",
+ "serde",
 ]
 
 [[package]]
@@ -2746,6 +2756,7 @@ dependencies = [
  "catppuccin-egui",
  "eframe",
  "egui",
+ "egui-modal",
  "egui-toast",
  "egui_demo_lib",
  "egui_dock",
@@ -2754,6 +2765,7 @@ dependencies = [
  "enum-map",
  "image",
  "poll-promise",
+ "rand",
  "serde",
  "serde_json",
  "syntect",

@@ -2,10 +2,9 @@ pub mod request_method;
 pub mod resource;
 pub mod syntax_highlighting;
 
-use egui::emath::Numeric;
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::time::Instant;
@@ -17,8 +16,11 @@ use crate::ui::{
     ui_body::ui_body, ui_headers::ui_headers, ui_history::ui_history,
     ui_query_params::ui_query_params, ui_response::ui_response, ui_url::ui_url,
 };
-use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
+use egui_modal::Modal;
 use url::Url;
+
+type Tab = String;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Config {
@@ -28,8 +30,7 @@ pub struct Config {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct HttpApp {
     open_requests: TabViewer,
-    tree: DockState<String>,
-    counter: usize,
+    tree: DockState<Tab>,
     loaded_initial: bool,
 }
 
@@ -39,14 +40,18 @@ impl Default for HttpApp {
         tab_states.insert("Test".to_owned(), TabState::default());
         let history_items = vec![];
         Self {
-            counter: 1 as usize,
             loaded_initial: false,
             open_requests: TabViewer {
+                counter: 1 as usize,
                 open_requests: tab_states,
                 added_nodes: vec![],
                 history_items,
                 active_tab: None,
                 active_request: None,
+                tab_name_modal: None,
+                new_tab_name: "".to_owned(),
+                new_tab_name_temp: "".to_owned(),
+                tab_name_to_change: "".to_owned(),
             },
             tree: DockState::new(vec!["Test".to_owned()]),
         }
@@ -59,7 +64,13 @@ struct TabViewer {
     added_nodes: Vec<(usize, usize)>,
     history_items: Vec<HistoryItem>,
     active_tab: Option<String>,
+    counter: usize,
     active_request: Option<HistoryItem>,
+    #[serde(skip)]
+    tab_name_modal: Option<Modal>,
+    new_tab_name: String,
+    new_tab_name_temp: String,
+    tab_name_to_change: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -100,26 +111,48 @@ impl Default for TabState {
 }
 
 impl egui_dock::TabViewer for TabViewer {
-    type Tab = String;
+    type Tab = Tab;
 
     fn title(&mut self, title: &mut String) -> egui::WidgetText {
         egui::WidgetText::from(&*title)
     }
 
     fn on_add(&mut self, surface: SurfaceIndex, node: NodeIndex) {
-        self.open_requests
-            .insert("test".to_owned(), TabState::default());
         self.added_nodes.push((surface.0, node.0));
+    }
+
+    fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
+        if self.counter == 1 {
+            return false;
+        }
+        self.counter -= 1;
+        return true;
     }
 
     fn on_tab_button(&mut self, tab: &mut Self::Tab, response: &egui::Response) {
         if response.clicked() {
             self.active_tab = Some(tab.clone());
         }
+
+        if response.double_clicked() {
+            println!("tabb: {}", tab);
+            self.tab_name_to_change = tab.to_string();
+            self.tab_name_modal.as_ref().unwrap().open();
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let state = self.open_requests.entry(tab.clone()).or_default();
+        if self.new_tab_name != ""
+            && self.tab_name_to_change != ""
+            && self.tab_name_to_change == tab.clone()
+        {
+            println!("New name: {} {}", tab, self.new_tab_name);
+            tab.clear();
+            tab.insert_str(0, &self.new_tab_name);
+            self.new_tab_name = "".to_owned();
+            self.tab_name_to_change = "".to_owned();
+        }
 
         let mut toasts = egui_toast::Toasts::new()
             .anchor(egui::Align2::LEFT_BOTTOM, (10.0, 10.0))
@@ -237,6 +270,7 @@ impl egui_dock::TabViewer for TabViewer {
                     response.map(|response| Resource::from_response(&ctx, response, elapsed));
                 sender.send(resource);
             });
+
             self.active_request = Some(HistoryItem {
                 id: (self.history_items.len()).to_string(),
                 url: state.url.clone(),
@@ -253,13 +287,15 @@ impl egui_dock::TabViewer for TabViewer {
 
         ui.separator();
 
-        if let Some(promise) = &state.promise {
+        if let Some(promise) = &mut state.promise {
             if let Some(result) = promise.ready() {
                 match result {
                     Ok(resource) => {
-                        self.history_items
-                            .insert(0, self.active_request.as_ref().unwrap().clone());
-                        self.active_request = None;
+                        if self.active_request.is_some() {
+                            self.history_items
+                                .insert(0, self.active_request.as_ref().unwrap().clone());
+                            self.active_request = None;
+                        }
 
                         ui.style_mut().text_styles.insert(
                             egui::TextStyle::Body,
@@ -271,6 +307,7 @@ impl egui_dock::TabViewer for TabViewer {
                         ui_response(
                             ui,
                             resource,
+                            tab,
                             &mut state.show_headers,
                             &mut state.show_body,
                             &mut state.show_info,
@@ -319,13 +356,44 @@ impl HttpApp {
         let tree_str = storage.get_string("tree");
 
         if tree_str.is_some() {
-            let tree: Vec<String> =
-                serde_json::from_str::<Vec<String>>(tree_str.unwrap().as_str()).unwrap();
+            let tree: DockState<Tab> =
+                serde_json::from_str::<DockState<Tab>>(tree_str.unwrap().as_str()).unwrap();
 
-            default.counter = tree.len();
-            default.tree = DockState::new(tree);
+            default.open_requests.counter = tree.iter_all_tabs().count();
+            default.tree = tree
         }
         default
+    }
+}
+
+impl TabViewer {
+    fn prompt_modal(self: &mut TabViewer, ctx: &egui::Context) -> Modal {
+        let modal = Modal::new(ctx, "my_modal");
+
+        // What goes inside the modal
+        modal.show(|ui| {
+            // these helper functions help set the ui based on the modal's
+            // set style, but they are not required and you can put whatever
+            // ui you want inside [`.show()`]
+            modal.title(ui, "Tab name");
+            modal.frame(ui, |ui| {
+                ui.label("New name: ");
+                ui.add(egui::TextEdit::singleline(&mut self.new_tab_name_temp));
+            });
+            modal.buttons(ui, |ui| {
+                // After clicking, the modal is automatically closed
+                if modal.button(ui, "Close").clicked() {
+                    self.new_tab_name_temp = "".to_owned();
+                };
+                // After clicking, the modal is automatically closed
+                if modal.button(ui, "Ok").clicked() && self.new_tab_name_temp != "" {
+                    self.new_tab_name = self.new_tab_name_temp.clone();
+                    self.new_tab_name_temp = "".to_owned();
+                };
+            });
+        });
+
+        modal
     }
 }
 
@@ -343,16 +411,17 @@ impl eframe::App for HttpApp {
                 .to_string(),
         );
         // println!("Saving state {:?}", self.history_items);
-        let mut tabs: Vec<String> = vec![];
-        for (_, tab) in self.tree.iter_all_tabs() {
-            tabs.push(tab.to_string());
-        }
-        storage.set_string("tree", serde_json::to_value(tabs).unwrap().to_string());
+        storage.set_string(
+            "tree",
+            serde_json::to_value(&self.tree).unwrap().to_string(),
+        );
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui_extras::install_image_loaders(ctx);
         catppuccin_egui::set_theme(ctx, catppuccin_egui::MOCHA);
+
+        self.open_requests.tab_name_modal = Some(self.open_requests.prompt_modal(ctx));
 
         egui::SidePanel::left("left_panel")
             .resizable(true)
@@ -374,7 +443,6 @@ impl eframe::App for HttpApp {
 
                                 if state_opt.is_some() {
                                     let state = state_opt.unwrap();
-                                    println!("STate: {:?}", state.url);
                                     state.url = item.url.clone();
                                     state.method = item.method.clone();
                                     state.request_body = item.request_body.clone();
@@ -411,10 +479,13 @@ impl eframe::App for HttpApp {
                     SurfaceIndex::from(surface),
                     NodeIndex::from(node),
                 ));
-                let new_tab = format!("Tab {}", self.counter.to_string());
+                let new_tab = format!("Tab {}", self.open_requests.counter.to_string());
+                self.open_requests
+                    .open_requests
+                    .insert(new_tab.clone(), TabState::default());
                 self.tree.push_to_focused_leaf(new_tab.clone());
                 self.open_requests.active_tab = Some(new_tab);
-                self.counter += 1;
+                self.open_requests.counter += 1;
             });
 
         if !self.loaded_initial {
