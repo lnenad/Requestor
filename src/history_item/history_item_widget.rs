@@ -1,5 +1,7 @@
 use egui::{FontId, Pos2};
 
+// Custom widget used in the history list display. Used
+// to display the request method and the url.
 pub fn history_item_widget(ui: &mut egui::Ui, method: String, url: String) -> egui::Response {
     let text_height = 19.0;
     let tile_width = ui.available_size().x;

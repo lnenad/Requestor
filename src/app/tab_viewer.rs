@@ -1,8 +1,10 @@
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::fs;
 use std::time::Instant;
 
 use crate::app::request_method::RequestMethod;
@@ -16,6 +18,8 @@ use crate::ui::{
 use egui_dock::{NodeIndex, SurfaceIndex};
 use egui_modal::Modal;
 use url::Url;
+
+use super::environment_injector::inject_environment;
 
 pub type Tab = String;
 
@@ -32,6 +36,7 @@ pub struct TabViewer {
     pub new_tab_name: String,
     pub new_tab_name_temp: String,
     pub tab_name_to_change: String,
+    pub env_modal_opened: bool,
 }
 
 impl egui_dock::TabViewer for TabViewer {
@@ -66,6 +71,69 @@ impl egui_dock::TabViewer for TabViewer {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let state = self.open_requests.entry(tab.clone()).or_default();
+
+        let menu_response = egui::menu::bar(ui, |ui| {
+            ui.menu_button("Environment", |ui| {
+                if ui.button("Load").clicked() {
+                    let file = rfd::FileDialog::new()
+                        .add_filter("text", &["txt"])
+                        .add_filter("json", &["json"])
+                        .pick_file();
+
+                    match file {
+                        Some(file_path) => {
+                            println!("File: {:?}", file_path);
+                            match fs::read_to_string(file_path) {
+                                Ok(contents) => {
+                                    let parsed: Value = serde_json::from_str(&contents).unwrap();
+                                    let obj: Map<String, Value> =
+                                        parsed.as_object().unwrap().clone();
+                                    println!("Parsed: {:?} ", obj);
+                                    state.environment = obj;
+                                }
+                                Err(error) => {
+                                    println!("{:?}", error);
+                                }
+                            }
+                        }
+                        None => (),
+                    }
+                    ui.close_menu();
+                }
+                if ui.button("Clear").clicked() {
+                    state.environment = Default::default();
+                    ui.close_menu();
+                }
+            });
+        });
+
+        environment_status(
+            ui.ctx(),
+            tab,
+            &mut self.env_modal_opened,
+            state.environment.len() > 0,
+            menu_response.response.rect,
+        );
+
+        if state.environment.len() > 0 {
+            // Env values modal window
+            let mut modal_title = "Environment variables for ".to_owned();
+            modal_title.push_str(tab.as_str());
+            egui::Window::new(modal_title)
+                .open(&mut self.env_modal_opened)
+                .show(ui.ctx(), |ui| {
+                    egui::Grid::new("env_values")
+                        .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
+                        .show(ui, |ui| {
+                            for (k, v) in &state.environment {
+                                ui.label(k);
+                                ui.label(v.as_str().unwrap_or("Invalid value"));
+                                ui.end_row();
+                            }
+                        });
+                });
+        }
+
         if self.new_tab_name != ""
             && self.tab_name_to_change != ""
             && self.tab_name_to_change == tab.clone()
@@ -94,12 +162,42 @@ impl egui_dock::TabViewer for TabViewer {
         egui::CollapsingHeader::new("Request")
             .default_open(true)
             .show(ui, |ui| {
-                let (url_input, trigger_fetch) = ui_url(ui, &mut state.url, &mut state.method);
-                if url_input.unwrap().changed() {
+                let trigger_fetch = ui_url(ui, &mut state.url, &mut state.method);
+
+                ui_query_params(
+                    ui,
+                    &mut state.url,
+                    &mut state.query_param_keys,
+                    &mut state.query_param_values,
+                );
+
+                ui_headers(
+                    ui,
+                    &mut state.request_header_keys,
+                    &mut state.request_header_values,
+                );
+
+                ui_body(ui, &mut state.request_body);
+
+                if trigger_fetch {
+                    let (url, error) = inject_environment(&state.url, &state.environment);
+                    if error.is_some() {
+                        toasts.add(egui_toast::Toast {
+                            text: error.unwrap().into(),
+                            kind: egui_toast::ToastKind::Error,
+                            options: egui_toast::ToastOptions::default()
+                                .duration_in_seconds(3.0)
+                                .show_progress(true)
+                                .show_icon(true),
+                        });
+                        return;
+                    }
+
+                    // Check if URL is valid
                     let violations = RefCell::new(Vec::new());
                     let parsed_url = Url::options()
                         .syntax_violation_callback(Some(&|v| violations.borrow_mut().push(v)))
-                        .parse(&state.url);
+                        .parse(&url);
 
                     match parsed_url {
                         Ok(result_url) => {
@@ -134,43 +232,21 @@ impl egui_dock::TabViewer for TabViewer {
                                     .show_progress(true)
                                     .show_icon(true),
                             });
-                            for idx in 0..state.query_param_keys.len() {
-                                if state.query_param_keys.len() == idx {
-                                    continue;
-                                }
-                                state.query_param_values[idx] = "Invalid URL".to_owned();
-                                state.query_param_keys[idx] = "Invalid URL".to_owned();
-                            }
+
+                            return;
                         }
                     }
-                }
 
-                ui_query_params(
-                    ui,
-                    &mut state.url,
-                    &mut state.query_param_keys,
-                    &mut state.query_param_values,
-                );
-
-                ui_headers(
-                    ui,
-                    &mut state.request_header_keys,
-                    &mut state.request_header_values,
-                );
-
-                ui_body(ui, &mut state.request_body);
-
-                if trigger_fetch {
                     let (sender, promise) = Promise::new();
 
                     let ctx = ui.ctx().clone();
 
                     let mut request = match state.method {
-                        RequestMethod::GET => ehttp::Request::get(&state.url),
-                        RequestMethod::POST => ehttp::Request::post(&state.url, Vec::new()),
-                        RequestMethod::PUT => ehttp::Request::post(&state.url, Vec::new()),
-                        RequestMethod::PATCH => ehttp::Request::post(&state.url, Vec::new()),
-                        RequestMethod::DELETE => ehttp::Request::post(&state.url, Vec::new()),
+                        RequestMethod::GET => ehttp::Request::get(&url),
+                        RequestMethod::POST => ehttp::Request::post(&url, Vec::new()),
+                        RequestMethod::PUT => ehttp::Request::post(&url, Vec::new()),
+                        RequestMethod::PATCH => ehttp::Request::post(&url, Vec::new()),
+                        RequestMethod::DELETE => ehttp::Request::post(&url, Vec::new()),
                     };
                     for idx in 0..state.request_header_keys.len() {
                         if state.request_header_keys[idx].len() == 0 {
@@ -201,7 +277,8 @@ impl egui_dock::TabViewer for TabViewer {
 
                     self.active_request = Some(HistoryItem {
                         id: (self.history_items.len()).to_string(),
-                        url: state.url.clone(),
+                        url: url.clone(),
+                        original_url: state.url.clone(),
                         method: state.method.clone(),
                         request_body: state.request_body.clone(),
                         request_header_keys: state.request_header_keys.clone(),
@@ -293,4 +370,33 @@ impl TabViewer {
 
         modal
     }
+}
+
+fn environment_status(
+    ctx: &egui::Context,
+    tab: &String,
+    env_modal_opened: &mut bool,
+    loaded: bool,
+    rect: egui::Rect,
+) {
+    let mut name = "env_status".to_owned();
+    name.push_str(tab.as_str());
+    egui::Area::new(name)
+        .current_pos(egui::Pos2 {
+            x: rect.min.x + rect.width() - 22.0,
+            y: rect.min.y,
+        })
+        .order(egui::Order::Foreground)
+        .interactable(true)
+        .show(ctx, |ui| {
+            if loaded {
+                let tooltip = "Environment loaded. Click to preview values";
+                if ui.button("✅").on_hover_text(tooltip).clicked() {
+                    *env_modal_opened = true;
+                }
+            } else {
+                let tooltip = "Environment not loaded.";
+                if ui.button("❎").on_hover_text(tooltip).clicked() {}
+            }
+        });
 }

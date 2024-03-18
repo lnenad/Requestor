@@ -3,6 +3,7 @@ use crate::app::resource::Resource;
 
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 #[derive(Serialize, Deserialize)]
 pub struct TabState {
@@ -16,6 +17,7 @@ pub struct TabState {
     pub show_headers: bool,
     pub show_body: bool,
     pub show_info: bool,
+    pub environment: Map<String, Value>,
     #[serde(skip)]
     pub resource: Option<Resource>,
     #[serde(skip)]
@@ -25,7 +27,7 @@ pub struct TabState {
 impl Clone for TabState {
     fn clone(&self) -> Self {
         Self {
-            method: self.method,
+            method: self.method.clone(),
             url: self.url.clone(),
             request_header_keys: self.request_header_keys.clone(),
             request_header_values: self.request_header_values.clone(),
@@ -33,9 +35,10 @@ impl Clone for TabState {
             query_param_values: self.query_param_values.clone(),
             request_body: self.request_body.clone(),
             resource: self.resource.clone(),
-            show_headers: self.show_headers,
-            show_body: self.show_body,
-            show_info: self.show_info,
+            show_headers: self.show_headers.clone(),
+            show_body: self.show_body.clone(),
+            show_info: self.show_info.clone(),
+            environment: self.environment.clone(),
             promise: Default::default(),
         }
     }
@@ -55,6 +58,7 @@ impl Default for TabState {
             show_headers: true,
             show_body: false,
             show_info: false,
+            environment: Default::default(),
             promise: Default::default(),
         }
     }

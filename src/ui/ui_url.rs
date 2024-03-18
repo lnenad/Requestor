@@ -1,12 +1,6 @@
-use egui::Response;
-
 use crate::app::request_method::RequestMethod;
 
-pub fn ui_url(
-    ui: &mut egui::Ui,
-    url: &mut String,
-    method: &mut RequestMethod,
-) -> (Option<Response>, bool) {
+pub fn ui_url(ui: &mut egui::Ui, url: &mut String, method: &mut RequestMethod) -> bool {
     let mut trigger_fetch = false;
 
     ui.style_mut().text_styles.insert(
@@ -44,5 +38,5 @@ pub fn ui_url(
         }
     });
 
-    (url_input, trigger_fetch)
+    trigger_fetch
 }

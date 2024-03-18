@@ -1,3 +1,4 @@
+pub mod environment_injector;
 pub mod request_method;
 pub mod resource;
 pub mod syntax_highlighting;
@@ -42,6 +43,7 @@ impl Default for HttpApp {
                 new_tab_name: "".to_owned(),
                 new_tab_name_temp: "".to_owned(),
                 tab_name_to_change: "".to_owned(),
+                env_modal_opened: false,
             },
             tree: DockState::new(vec!["Test".to_owned()]),
         }
@@ -129,7 +131,7 @@ impl eframe::App for HttpApp {
 
                                 if state_opt.is_some() {
                                     let state = state_opt.unwrap();
-                                    state.url = item.url.clone();
+                                    state.url = item.original_url.clone();
                                     state.method = item.method.clone();
                                     state.request_body = item.request_body.clone();
                                     state.request_header_keys = item.request_header_keys.clone();

@@ -13,6 +13,7 @@ pub fn ui_history(ui: &mut egui::Ui, items: &Vec<HistoryItem>) -> Option<History
                 selected = Some(HistoryItem {
                     id: id.to_string(),
                     url: item.url.clone(),
+                    original_url: item.original_url.clone(),
                     method: item.method.clone(),
                     request_body: item.request_body.clone(),
                     request_header_keys: item.request_header_keys.clone(),

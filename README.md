@@ -109,6 +109,7 @@ To build the project execute `cargo build`.
 ## Roadmap
 
 - [ ] Add a nice preview and json formatting options
+- [x] Add environment
 - [ ] Add configuration
 - [ ] Add projects that contain saved requests
 

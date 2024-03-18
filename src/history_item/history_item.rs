@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct HistoryItem {
     pub id: String,
     pub url: String,
+    pub original_url: String,
     pub method: RequestMethod,
     pub request_header_keys: Vec<String>,
     pub request_header_values: Vec<String>,
