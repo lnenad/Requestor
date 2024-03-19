@@ -123,7 +123,7 @@ If you set the url to `{url}/get` and perform the request, the request will be s
 
 ## Development
 
-To get a local copy up and running follow these simple example steps.
+The goal of this project isn't perfect code, and to add on top of that I am not a well versed Rust developer so any tips on improving code quality/performance are more than welcome but are not going to be the focus for me. To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 

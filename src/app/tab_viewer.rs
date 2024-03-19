@@ -216,6 +216,8 @@ impl egui_dock::TabViewer for TabViewer {
                                     &mut state.show_headers,
                                     &mut state.show_body,
                                     &mut state.show_info,
+                                    &mut state.wrap_text,
+                                    &mut state.stx_hgl,
                                 );
                                 state.resource = Some(resource.clone());
                             }

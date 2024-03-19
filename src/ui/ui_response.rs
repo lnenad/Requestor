@@ -9,6 +9,8 @@ pub fn ui_response(
     show_headers: &mut bool,
     show_body: &mut bool,
     show_info: &mut bool,
+    wrap_text: &mut bool,
+    stx_hgl: &mut bool,
 ) {
     let Resource {
         response,
@@ -55,6 +57,23 @@ pub fn ui_response(
             *show_info = true;
         }
         ui.separator();
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
+            ui.separator();
+            if ui
+                .add(egui::SelectableLabel::new(*wrap_text, "Wrap text"))
+                .clicked()
+            {
+                *wrap_text = !*wrap_text;
+            }
+            ui.separator();
+            if ui
+                .add(egui::SelectableLabel::new(*stx_hgl, "Syntax highlighting"))
+                .clicked()
+            {
+                *stx_hgl = !*stx_hgl;
+            }
+            ui.separator();
+        });
     });
 
     ui.separator();
@@ -114,15 +133,23 @@ pub fn ui_response(
 
                     if let Some(image) = image {
                         ui.add(image.clone());
-                    } else if let Some(_colored_text) = colored_text {
-                        code_view_ui(
-                            ui,
-                            &CodeTheme::dark(),
-                            text.as_ref().unwrap().as_str(),
-                            get_type_from_mime(response.content_type().unwrap()),
-                        );
+                    } else if *stx_hgl {
+                        if let Some(_colored_text) = colored_text {
+                            code_view_ui(
+                                ui,
+                                &CodeTheme::dark(),
+                                text.as_ref().unwrap().as_str(),
+                                get_type_from_mime(response.content_type().unwrap()),
+                                wrap_text,
+                            );
+                        } else {
+                            ui.add(
+                                egui::Label::new("Unable to perform syntax highligting")
+                                    .selectable(true),
+                            );
+                        }
                     } else if let Some(text) = &text {
-                        ui.add(egui::Label::new(text).selectable(true));
+                        ui.add(egui::Label::new(text).wrap(*wrap_text).selectable(true));
                     }
                 }
 
@@ -170,7 +197,6 @@ fn clipboard(ctx: &egui::Context, name: String, rect: egui::Rect, text: &String)
             x: rect.min.x + rect.width() - 22.0,
             y: rect.min.y,
         })
-        .order(egui::Order::Foreground)
         .interactable(true)
         .show(ctx, |ui| {
             let tooltip = "Click to copy";

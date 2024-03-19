@@ -13,9 +13,14 @@ pub fn code_view_ui(
     theme: &CodeTheme,
     code: &str,
     language: &str,
+    wrap_text: &mut bool,
 ) -> egui::Response {
     let layout_job = highlight(ui.ctx(), theme, code, language);
-    ui.add(egui::Label::new(layout_job).selectable(true))
+    ui.add(
+        egui::Label::new(layout_job)
+            .wrap(*wrap_text)
+            .selectable(true),
+    )
 }
 
 /// Add syntax highlighting to a code string.
