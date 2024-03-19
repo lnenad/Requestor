@@ -74,6 +74,21 @@ The goal of this is to have a free, open source alternative to resource intensiv
 
 <!-- GETTING STARTED -->
 
+## Features
+
+The project is an attempt to create a lightweight API testing tool to counter the approach that current offering of costly, heavyweight tools. No subscriptions are planned, no cloud features. Simplicity is a priority and avoiding unnecessary feature bloat.
+
+### Goals
+
+- To be _lightweight_. This means startup time of the program is low, memory usage is low, processor usage is low.
+- To stay _simple to use_. The happiest flow of opening the program, inputting the url, send the request should be as straightforward as possible.
+- Stay _subscription free, local and open source_.
+
+### Non-goals
+
+- _Feature bloat_. Current offerings are very complex, for a small percentage of users this makes sense, this is not the goal for Requestor.
+- _Cloud sync_. Having some sort of instant sync across multiple machines seems unnecessary for a huge percentage of people using API testing tools.
+
 ## Getting Started
 
 To get a local copy up and running follow these simple example steps.
@@ -109,8 +124,8 @@ To build the project execute `cargo build`.
 ## Roadmap
 
 - [ ] Add a nice preview and json formatting options
-- [x] Add environment
-- [ ] Add configuration
+- [x] Add environment configuration
+- [ ] Add project configuration
 - [ ] Add projects that contain saved requests
 
 See the [open issues](https://github.com/lnenad/Requestor/issues) for a full list of proposed features (and known issues).
