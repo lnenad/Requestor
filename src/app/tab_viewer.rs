@@ -208,15 +208,19 @@ impl egui_dock::TabViewer for TabViewer {
                                     Some(v) => v,
                                     None => break,
                                 };
+                                let (injected_key, _err) =
+                                    inject_environment(&val.0.to_string(), &state.environment);
                                 if state.query_param_keys.len() == x {
-                                    state.query_param_keys.insert(x, val.0.to_string())
+                                    state.query_param_keys.insert(x, injected_key)
                                 } else {
-                                    state.query_param_keys[x] = val.0.to_string();
+                                    state.query_param_keys[x] = injected_key;
                                 }
+                                let (injected_val, _err) =
+                                    inject_environment(&val.0.to_string(), &state.environment);
                                 if state.query_param_values.len() == x {
-                                    state.query_param_values.insert(x, val.1.to_string())
+                                    state.query_param_values.insert(x, injected_val)
                                 } else {
-                                    state.query_param_values[x] = val.1.to_string();
+                                    state.query_param_values[x] = injected_val;
                                 }
                                 x += 1;
                             }
@@ -252,10 +256,13 @@ impl egui_dock::TabViewer for TabViewer {
                         if state.request_header_keys[idx].len() == 0 {
                             continue;
                         }
-                        request.headers.insert(
-                            &state.request_header_keys[idx],
+                        let (h_k, _err) =
+                            inject_environment(&state.request_header_keys[idx], &state.environment);
+                        let (h_v, _err) = inject_environment(
                             &state.request_header_values[idx],
+                            &state.environment,
                         );
+                        request.headers.insert(&h_k, &h_v);
                     }
 
                     if (request.method != RequestMethod::GET.to_string()

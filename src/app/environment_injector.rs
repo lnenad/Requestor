@@ -12,7 +12,10 @@ pub fn inject_environment(
             Some(value) => {
                 new_str = new_str.replace(&format!("{{{}}}", k), value);
             }
-            None => err = Some("Error parsing value from json".to_owned()),
+            None => {
+                new_str = str.clone();
+                err = Some("Error parsing value from json".to_owned())
+            }
         }
     }
     (new_str, err)
