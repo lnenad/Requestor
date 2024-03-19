@@ -39,6 +39,9 @@
       <ul>
         <li><a href="#built-with">Built With</a></li>
       </ul>
+      <ul>
+        <li><a href="#features">Features</a></li>
+      </ul>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -80,14 +83,19 @@ The project is an attempt to create a lightweight API testing tool to counter th
 
 ### Goals
 
-- To be _lightweight_. This means startup time of the program is low, memory usage is low, processor usage is low.
-- To stay _simple to use_. The happiest flow of opening the program, inputting the url, send the request should be as straightforward as possible.
-- Stay _subscription free, local and open source_.
+- To be **lightweight**. This means startup time of the program is low, memory usage is low, processor usage is low.
+- To stay **simple to use**. The happiest flow of opening the program, inputting the url, send the request should be as straightforward as possible.
+- Stay **subscription free, local and open source**.
 
 ### Non-goals
 
-- _Feature bloat_. Current offerings are very complex, for a small percentage of users this makes sense, this is not the goal for Requestor.
-- _Cloud sync_. Having some sort of instant sync across multiple machines seems unnecessary for a huge percentage of people using API testing tools.
+- **Feature bloat**. Current offerings are very complex, for a small percentage of users this makes sense, this is not the goal for Requestor.
+- **Cloud sync**. Having some sort of instant sync across multiple machines seems unnecessary for a huge percentage of people using API testing tools.
+
+### Feature support
+
+- **Tab support**. You have a huge screen? Great, you can split the main window into multiple tabbed layouts and speed up testing of different scenarios.
+- **Environment support**. A simple key-value json file that can be loaded to provide an easy way to load secrets/fixed values across multiple requests.
 
 ## Getting Started
 
