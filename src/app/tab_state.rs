@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::app::request_method::RequestMethod;
 use crate::app::resource::Resource;
 
@@ -22,6 +24,7 @@ pub struct TabState {
     pub resource: Option<Resource>,
     #[serde(skip)]
     pub promise: Option<Promise<ehttp::Result<Resource>>>,
+    pub environment_path: PathBuf,
 }
 
 impl Clone for TabState {
@@ -40,6 +43,7 @@ impl Clone for TabState {
             show_info: self.show_info.clone(),
             environment: self.environment.clone(),
             promise: Default::default(),
+            environment_path: Default::default(),
         }
     }
 }
@@ -60,6 +64,7 @@ impl Default for TabState {
             show_info: false,
             environment: Default::default(),
             promise: Default::default(),
+            environment_path: Default::default(),
         }
     }
 }

@@ -1,3 +1,4 @@
+use egui_toast::Toasts;
 use poll_promise::Promise;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -5,6 +6,7 @@ use serde_json::{Map, Value};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fs;
+use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::app::request_method::RequestMethod;
@@ -70,6 +72,10 @@ impl egui_dock::TabViewer for TabViewer {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        let mut toasts = egui_toast::Toasts::new()
+            .anchor(egui::Align2::CENTER_TOP, (10.0, 10.0))
+            .direction(egui::Direction::TopDown);
+
         let state = self.open_requests.entry(tab.clone()).or_default();
 
         let menu_response = egui::menu::bar(ui, |ui| {
@@ -83,18 +89,16 @@ impl egui_dock::TabViewer for TabViewer {
                     match file {
                         Some(file_path) => {
                             println!("File: {:?}", file_path);
-                            match fs::read_to_string(file_path) {
-                                Ok(contents) => {
-                                    let parsed: Value = serde_json::from_str(&contents).unwrap();
-                                    let obj: Map<String, Value> =
-                                        parsed.as_object().unwrap().clone();
-                                    println!("Parsed: {:?} ", obj);
-                                    state.environment = obj;
-                                }
-                                Err(error) => {
-                                    println!("{:?}", error);
-                                }
-                            }
+                            state.environment_path = file_path.clone();
+                            load_environment(file_path, state);
+                            toasts.add(egui_toast::Toast {
+                                text: "Environment loaded".into(),
+                                kind: egui_toast::ToastKind::Success,
+                                options: egui_toast::ToastOptions::default()
+                                    .duration_in_seconds(3.0)
+                                    .show_progress(true)
+                                    .show_icon(true),
+                            });
                         }
                         None => (),
                     }
@@ -113,6 +117,8 @@ impl egui_dock::TabViewer for TabViewer {
             &mut self.env_modal_opened,
             state.environment.len() > 0,
             menu_response.response.rect,
+            state,
+            &mut toasts,
         );
 
         if state.environment.len() > 0 {
@@ -148,10 +154,6 @@ impl egui_dock::TabViewer for TabViewer {
             self.tab_name_to_change = "".to_owned();
             return;
         }
-
-        let mut toasts = egui_toast::Toasts::new()
-            .anchor(egui::Align2::LEFT_BOTTOM, (10.0, 10.0))
-            .direction(egui::Direction::BottomUp);
 
         let prev_url = state.url.clone();
 
@@ -385,25 +387,62 @@ fn environment_status(
     env_modal_opened: &mut bool,
     loaded: bool,
     rect: egui::Rect,
+    state: &mut TabState,
+    toasts: &mut Toasts,
 ) {
     let mut name = "env_status".to_owned();
+    let pos_sub = if loaded { 51.0 } else { 23.0 };
     name.push_str(tab.as_str());
     egui::Area::new(name)
         .current_pos(egui::Pos2 {
-            x: rect.min.x + rect.width() - 22.0,
+            x: rect.min.x + rect.width() - pos_sub,
             y: rect.min.y,
         })
         .order(egui::Order::Foreground)
         .interactable(true)
         .show(ctx, |ui| {
             if loaded {
-                let tooltip = "Environment loaded. Click to preview values";
-                if ui.button("✅").on_hover_text(tooltip).clicked() {
-                    *env_modal_opened = true;
-                }
+                ui.horizontal(|ui| {
+                    if ui
+                        .button("🔁")
+                        .on_hover_text("Reload environment values.")
+                        .clicked()
+                    {
+                        load_environment(state.environment_path.clone(), state);
+                        toasts.add(egui_toast::Toast {
+                            text: "Environment loaded".into(),
+                            kind: egui_toast::ToastKind::Success,
+                            options: egui_toast::ToastOptions::default()
+                                .duration_in_seconds(3.0)
+                                .show_progress(true)
+                                .show_icon(true),
+                        });
+                    }
+                    if ui
+                        .button("✅")
+                        .on_hover_text("Environment loaded. Click to preview values")
+                        .clicked()
+                    {
+                        *env_modal_opened = true;
+                    }
+                });
             } else {
                 let tooltip = "Environment not loaded.";
                 if ui.button("❎").on_hover_text(tooltip).clicked() {}
             }
         });
+}
+
+fn load_environment(file_path: PathBuf, state: &mut TabState) {
+    match fs::read_to_string(file_path) {
+        Ok(contents) => {
+            let parsed: Value = serde_json::from_str(&contents).unwrap();
+            let obj: Map<String, Value> = parsed.as_object().unwrap().clone();
+            println!("Parsed: {:?} ", obj);
+            state.environment = obj;
+        }
+        Err(error) => {
+            println!("{:?}", error);
+        }
+    }
 }
