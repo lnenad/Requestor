@@ -44,7 +44,7 @@
       </ul>
     </li>
     <li>
-      <a href="#getting-started">Getting Started</a>
+      <a href="#development">Development</a>
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
@@ -97,7 +97,31 @@ The project is an attempt to create a lightweight API testing tool to counter th
 - **Tab support**. You have a huge screen? Great, you can split the main window into multiple tabbed layouts and speed up testing of different scenarios.
 - **Environment support**. A simple key-value json file that can be loaded to provide an easy way to load secrets/fixed values across multiple requests.
 
-## Getting Started
+### Environment setup
+
+To use environments you need to have a simple key/value `json` file setup.
+
+Example contents:
+
+```json
+{
+  "url": "https://httpbin.org",
+  "qs": "querystringvalue",
+  "secret": "authheadervalue"
+}
+```
+
+To use these values inside Requestor you need to load the file by clicking on the "Environment" dropdown within a tab and selecting "Load". The contents of the file will be read and stored in local app cache. If you change the file you can reload the contents by clicking on the 🔁 icon located in the upper right corner of the tab. After the file has been loaded you can preview the values by clicking on the ✅ icon located in the upper right corner of the tab.
+
+After everything is ready you can use the curly-brace syntax, `{key}`, to inject the environment values into the inputs. Currently evaluated inputs are:
+
+- url
+- querystring keys and values
+- header keys and values
+
+If you set the url to `{url}/get` and perform the request, the request will be sent to `https://httpbin.org/get` as per loaded environment values. If the value is not set in the environment it will not be replaced.
+
+## Development
 
 To get a local copy up and running follow these simple example steps.
 

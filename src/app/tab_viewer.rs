@@ -111,7 +111,7 @@ impl egui_dock::TabViewer for TabViewer {
             });
         });
 
-        environment_status(
+        environment_status_icons(
             ui.ctx(),
             tab,
             &mut self.env_modal_opened,
@@ -381,7 +381,7 @@ impl TabViewer {
     }
 }
 
-fn environment_status(
+fn environment_status_icons(
     ctx: &egui::Context,
     tab: &String,
     env_modal_opened: &mut bool,
