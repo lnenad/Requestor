@@ -1,5 +1,6 @@
 pub mod environment_injector;
 pub mod request_method;
+pub mod request_sender;
 pub mod resource;
 pub mod syntax_highlighting;
 pub mod tab_state;
