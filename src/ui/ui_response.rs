@@ -20,6 +20,10 @@ pub fn ui_response(
         image,
         colored_text,
     } = resource;
+    let big_boi = response.bytes.len() as f32 / 1000.0 > 100.0;
+    if big_boi {
+        *stx_hgl = false;
+    }
     ui.style_mut().text_styles.insert(
         egui::TextStyle::Button,
         egui::FontId::new(14.0, eframe::epaint::FontFamily::Proportional),
@@ -66,11 +70,19 @@ pub fn ui_response(
                 *wrap_text = !*wrap_text;
             }
             ui.separator();
+            let tooltip = if big_boi {
+                "File too big to perform syntax highlighting"
+            } else {
+                ""
+            };
             if ui
                 .add(egui::SelectableLabel::new(*stx_hgl, "Syntax highlighting"))
+                .on_hover_text(tooltip)
                 .clicked()
             {
-                *stx_hgl = !*stx_hgl;
+                if !big_boi {
+                    *stx_hgl = !*stx_hgl;
+                }
             }
             ui.separator();
         });
@@ -154,7 +166,7 @@ pub fn ui_response(
                 }
 
                 if *show_info {
-                    egui::Grid::new("response_headers")
+                    egui::Grid::new("response_info")
                         .spacing(egui::vec2(ui.spacing().item_spacing.x * 4.0, 4.0))
                         .show(ui, |ui| {
                             ui.monospace(format!("url: {}", response.url));
